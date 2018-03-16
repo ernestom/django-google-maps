@@ -63,14 +63,24 @@ function googleMapAdmin() {
       if (!loadingLabel) {
         loadingLabel = $(loadingHtml).insertAfter(addressField);
       }
-      // debounce the codeAddress execution
-      var timeout;
-      addressField.keyup(function() {
-        loadingLabel.css('display', 'block');
-        clearTimeout(timeout);
-        timeout = setTimeout(function() {
-          self.codeAddress();
-        }, 1000);
+
+      autocomplete = new google.maps.places.Autocomplete(
+        addressField[0],
+        {types: ['geocode']}
+      );
+
+      // don't make enter submit the form, let it just trigger the place_changed event
+      // which triggers the map update & geocode
+      addressField.keydown(function(e) {
+          if (e.keyCode == 13) {  // enter key
+            self.codeAddress();
+            e.preventDefault();
+            return false;
+          }
+      });
+
+      autocomplete.addListener('place_changed', function() {
+        self.codeAddress();
       });
     },
 
