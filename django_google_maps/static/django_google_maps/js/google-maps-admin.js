@@ -15,7 +15,8 @@ Only one marker will remain present on the map at a time.
 This script expects:
 
 <input type='text' name='address' id='id_address' />
-<input type='text' name='geolocation' id='id_geolocation' />
+<input type='text' name='latitude' id='id_latitude' />
+<input type='text' name='longitude' id='id_longitude' />
 
 If the geolocation input has a data-loading-message attribute, it is displayed
 below the address field's label.
@@ -30,7 +31,8 @@ function googleMapAdmin() {
   var marker;
 
   var addressField = $('#id_address');
-  var geolocationField = $('#id_geolocation');
+  var latitudeField = $('#id_latitude');
+  var longitudeField = $('#id_longitude');
   var loadingLabel;
 
   var self = {
@@ -57,26 +59,23 @@ function googleMapAdmin() {
       if (existinglocation) {
         self.setMarker(latlng);
       }
-      var loadingMessage = geolocationField.data('loading-message');
+      var loadingMessage = addressField.data('loading-message');
       var loadingHtml = '<div id="loadingLabel" style="font-weight:bold; display:none; position:absolute;">'
           + loadingMessage + '</div>';
       if (!loadingLabel) {
         loadingLabel = $(loadingHtml).insertAfter(addressField);
       }
 
-      autocomplete = new google.maps.places.Autocomplete(
-        addressField[0],
-        {types: ['geocode']}
-      );
+      autocomplete = new google.maps.places.Autocomplete(addressField[0]);
 
       // don't make enter submit the form, let it just trigger the place_changed event
       // which triggers the map update & geocode
       addressField.keydown(function(e) {
-          if (e.keyCode == 13) {  // enter key
-            self.codeAddress();
-            e.preventDefault();
-            return false;
-          }
+        if (e.keyCode == 13) {  // enter key
+          self.codeAddress();
+          e.preventDefault();
+          return false;
+        }
       });
 
       autocomplete.addListener('place_changed', function() {
@@ -85,14 +84,13 @@ function googleMapAdmin() {
     },
 
     getExistingLocation: function() {
-      var geolocation = geolocationField.val();
-      if (geolocation) {
-        return geolocation.split(',');
-      }
+      var lat = latitudeField.val(), lng = longitudeField.val();
+      return lat && lng ? [lat, lng] : null;
     },
 
     codeAddress: function() {
       var address = addressField.val();
+      loadingLabel.css('display', 'block');
       geocoder.geocode({'address': address}, function(results, status) {
         if (status == google.maps.GeocoderStatus.OK) {
           var latlng = results[0].geometry.location;
@@ -128,8 +126,8 @@ function googleMapAdmin() {
 
     addMarkerDrag: function() {
       marker.setDraggable(true);
-      google.maps.event.addListener(marker, 'dragend', function(new_location) {
-        self.updateGeolocation(new_location.latLng);
+      google.maps.event.addListener(marker, 'dragend', function(newLocation) {
+        self.updateGeolocation(newLocation.latLng);
       });
     },
 
@@ -138,9 +136,10 @@ function googleMapAdmin() {
     },
 
     updateGeolocation: function(latlng) {
-      geolocationField
-        .val(latlng.lat() + ',' + latlng.lng())
-        .trigger('change');
+      latitudeField.val(latlng.lat().toFixed(8));
+      latitudeField.trigger('change');
+      longitudeField.val(latlng.lng().toFixed(8));
+      longitudeField.trigger('change');
       loadingLabel.css('display', 'none');
     }
   }
